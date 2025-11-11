@@ -1,0 +1,21 @@
+# Requirements for Hand Sign Detection Web App
+# Optimized for Raspberry Pi 5
+
+# Web Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Deep Learning (TensorFlow Lite for Raspberry Pi)
+tensorflow==2.15.0
+# Alternative for Raspberry Pi: tflite-runtime
+
+# Computer Vision
+opencv-python==4.8.1.78
+# Alternative for Raspberry Pi: opencv-python-headless
+
+# Numerical Computing
+numpy==1.24.3
+
+# Note: For Raspberry Pi, you may want to use lighter alternatives:
+# - tflite-runtime instead of full tensorflow
+# - opencv-python-headless instead of opencv-python

@@ -1,0 +1,60 @@
+RASPBERRY_DEPLOY FOLDER STRUCTURE
+==================================
+
+Total Size: ~18 MB
+
+Files & Folders:
+├── app.py (4.6 KB)                    # Flask web server
+├── requirements.txt (544 B)           # Python dependencies
+├── README.md (6.8 KB)                 # Chi tiết hướng dẫn
+├── QUICKSTART.md (2.1 KB)             # Hướng dẫn nhanh 5 phút
+├── install.sh (3.7 KB) [executable]   # Script cài đặt tự động
+├── run.sh (1.3 KB) [executable]       # Script chạy app
+├── .gitignore (544 B)                 # Git ignore rules
+│
+├── templates/
+│   └── index.html (40 KB)             # Web interface với camera realtime
+│
+├── src/
+│   ├── __init__.py (1 B)              # Python package marker
+│   └── prediction_service.py (5 KB)  # AI prediction service
+│
+├── models/
+│   ├── sign_model.h5 (17 MB)          # Trained model
+│   └── training_info.json (847 B)    # Class names & info
+│
+└── static/
+    └── uploads/
+        └── .gitkeep                   # Keep empty folder in git
+
+Features:
+=========
+✓ Upload image prediction
+✓ Real-time camera detection
+✓ 29 ASL sign classes (A-Z, del, nothing, space)
+✓ Top-5 predictions with confidence
+✓ FPS counter
+✓ Responsive UI
+✓ Auto-install script
+✓ Run script
+
+Installation Size After Setup:
+================================
+- Minimal install: ~550 MB (with TFLite)
+- Full install: ~900 MB (with TensorFlow)
+
+Performance on Raspberry Pi 5:
+===============================
+- Image prediction: 1-3 seconds
+- Camera FPS: 2-5 FPS
+- RAM usage: 500 MB - 1 GB
+- Model load time: 5-10 seconds
+
+Quick Start:
+============
+1. Copy folder to Raspberry Pi
+2. Run: ./install.sh
+3. Run: ./run.sh
+4. Access: http://<pi-ip>:5000
+
+See QUICKSTART.md for detailed instructions.

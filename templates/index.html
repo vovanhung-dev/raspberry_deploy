@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhận Diện Ký Hiệu Tay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .result-item {
+            transition: all 0.2s ease;
+        }
+
+        .result-item:hover {
+            background: #f9fafb;
+        }
+
+        .loading {
+            border-top-color: transparent;
+            animation: spinner 0.6s linear infinite;
+        }
+
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .prediction-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 800;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.2s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-zone.drag-over {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .tab-button:hover {
+            background: #f9fafb;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-color: #667eea;
+            border-bottom-color: white;
+            position: relative;
+            z-index: 10;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #videoCanvas {
+            border-radius: 8px;
+            max-width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .camera-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .camera-status.active {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .camera-status.inactive {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <h1 class="text-xl font-bold">Nhận Diện Ký Hiệu Tay</h1>
+            <p class="text-blue-100 text-sm mt-1">AI nhận diện ngôn ngữ ký hiệu tay Mỹ (ASL)</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-6">
+
+        <!-- Tab Navigation -->
+        <div class="flex gap-2 mb-0">
+            <button class="tab-button active" onclick="switchTab('upload')">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                Upload Ảnh
+            </button>
+            <button class="tab-button" onclick="switchTab('camera')">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Camera Realtime
+            </button>
+        </div>
+
+        <!-- Upload Tab Content -->
+        <div id="uploadTab" class="tab-content active">
+            <!-- Layout 2 cột -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                <!-- Cột Trái - Upload -->
+                <div class="space-y-4">
+                    <div class="card p-5" style="border-top-left-radius: 0;">
+                        <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Tải Lên Hình Ảnh
+                        </h2>
+
+                    <!-- Upload Zone -->
+                    <div class="upload-zone rounded-lg p-6 text-center cursor-pointer mb-4" id="dropZone">
+                        <input type="file" id="fileInput" accept="image/*" class="hidden">
+
+                        <div id="uploadPrompt">
+                            <svg class="mx-auto h-10 w-10 text-gray-400 mb-2" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="text-gray-700 font-semibold mb-1">Kéo thả hoặc nhấn để chọn</p>
+                            <p class="text-gray-500 text-xs">PNG, JPG, JPEG, GIF, BMP (Max 16MB)</p>
+                        </div>
+
+                        <div id="imagePreview" class="hidden">
+                            <img id="previewImg" src="" alt="Preview" class="max-h-48 mx-auto rounded-lg shadow">
+                            <p id="fileName" class="text-gray-600 mt-2 text-sm"></p>
+                        </div>
+                    </div>
+
+                    <button id="predictBtn" class="btn-primary w-full text-white font-semibold py-3 px-4 rounded-lg text-sm shadow" disabled>
+                        <span id="btnText">Nhận Diện</span>
+                        <span id="btnLoading" class="hidden flex items-center justify-center">
+                            <span class="inline-block w-4 h-4 border-2 border-white rounded-full loading mr-2"></span>
+                            Đang xử lý...
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card p-4">
+                    <h3 class="font-bold text-gray-800 mb-2 text-sm">Thông Tin</h3>
+                    <ul class="space-y-1.5 text-gray-600 text-xs">
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-1.5 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Nhận diện 29 ký hiệu: A-Z, del, nothing, space</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-1.5 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Độ chính xác: 99.82% (Model hiện tại)</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-4 h-4 mr-1.5 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Xử lý nhanh trong vài giây</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Cột Phải - Results -->
+            <div id="resultsColumn" class="space-y-4 hidden fade-in">
+
+                <!-- Main Result Card -->
+                <div class="card p-5">
+                    <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Kết Quả
+                    </h2>
+
+                    <!-- Prediction Display -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-gray-600 text-xs font-semibold mb-2 uppercase">Ký Hiệu</p>
+                            <div class="prediction-badge" id="predictedClass">A</div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-gray-600 text-xs font-semibold mb-2 uppercase">Độ Tin Cậy</p>
+                            <p id="confidence" class="text-2xl font-bold text-purple-600">95.5%</p>
+                        </div>
+                    </div>
+
+                    <!-- Confidence Bar -->
+                    <div class="bg-gray-200 rounded-full h-2 overflow-hidden mb-4">
+                        <div id="confidenceBar" class="progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500" style="width: 0%"></div>
+                    </div>
+
+                    <!-- Uploaded Image Preview -->
+                    <div>
+                        <p class="text-gray-600 text-xs font-semibold mb-2">Hình Ảnh</p>
+                        <img id="resultImage" src="" alt="Result" class="w-full rounded-lg shadow">
+                    </div>
+                </div>
+
+                <!-- Top 5 Predictions -->
+                <div class="card p-5">
+                    <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Top 5 Dự Đoán
+                    </h3>
+                    <div id="top5Container" class="space-y-2">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Placeholder khi chưa có kết quả -->
+            <div id="emptyState" class="card p-8 text-center">
+                <svg class="mx-auto h-16 w-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="text-base font-semibold text-gray-700 mb-1">Chưa Có Kết Quả</h3>
+                <p class="text-gray-500 text-sm">Tải lên hình ảnh để bắt đầu</p>
+            </div>
+
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorSection" class="hidden mt-4 fade-in">
+                <div class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <div>
+                            <h3 class="text-red-800 font-bold text-sm">Lỗi</h3>
+                            <p id="errorMessage" class="text-red-700 text-sm mt-0.5"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Tab Content -->
+        <div id="cameraTab" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Cột Trái - Camera -->
+                <div class="space-y-4">
+                    <div class="card p-5" style="border-top-left-radius: 0;">
+                        <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            Camera Realtime
+                        </h2>
+
+                        <!-- Camera Status -->
+                        <div class="mb-4 p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="camera-status inactive" id="cameraStatus"></span>
+                                <span id="cameraStatusText" class="text-sm font-semibold text-gray-700">Camera đang tắt</span>
+                            </div>
+                            <span id="realtimeFps" class="text-xs text-gray-500">FPS: 0</span>
+                        </div>
+
+                        <!-- Video Display -->
+                        <div class="mb-4 bg-gray-900 rounded-lg overflow-hidden" style="min-height: 300px; display: flex; align-items: center; justify-content: center;">
+                            <video id="webcam" autoplay playsinline style="display: none; width: 100%; height: auto;"></video>
+                            <canvas id="videoCanvas" width="640" height="480"></canvas>
+                        </div>
+
+                        <!-- Camera Controls -->
+                        <div class="flex gap-2">
+                            <button id="startCameraBtn" class="btn-primary flex-1 text-white font-semibold py-3 px-4 rounded-lg text-sm shadow">
+                                <span class="flex items-center justify-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Bắt Đầu Camera
+                                </span>
+                            </button>
+                            <button id="stopCameraBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg text-sm shadow" style="display: none;">
+                                <span class="flex items-center justify-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                                    </svg>
+                                    Dừng Camera
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Info Card -->
+                    <div class="card p-4">
+                        <h3 class="font-bold text-gray-800 mb-2 text-sm">Hướng Dẫn</h3>
+                        <ul class="space-y-1.5 text-gray-600 text-xs">
+                            <li class="flex items-start">
+                                <svg class="w-4 h-4 mr-1.5 mt-0.5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Nhấn "Bắt Đầu Camera" để kích hoạt webcam</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-4 h-4 mr-1.5 mt-0.5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Đặt bàn tay vào khung hình để nhận diện</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-4 h-4 mr-1.5 mt-0.5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Kết quả sẽ hiển thị realtime bên phải</span>
+                            </li>
+                            <li class="flex items-start">
+                                <svg class="w-4 h-4 mr-1.5 mt-0.5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Độ trễ khoảng 100-200ms tùy thiết bị</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Cột Phải - Realtime Results -->
+                <div id="realtimeResultsColumn" class="space-y-4 hidden fade-in">
+                    <!-- Main Result Card -->
+                    <div class="card p-5">
+                        <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Kết Quả Realtime
+                        </h2>
+
+                        <!-- Prediction Display -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <p class="text-gray-600 text-xs font-semibold mb-2 uppercase">Ký Hiệu</p>
+                                <div class="prediction-badge" id="realtimePredictedClass">-</div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-gray-600 text-xs font-semibold mb-2 uppercase">Độ Tin Cậy</p>
+                                <p id="realtimeConfidence" class="text-2xl font-bold text-purple-600">0%</p>
+                            </div>
+                        </div>
+
+                        <!-- Confidence Bar -->
+                        <div class="bg-gray-200 rounded-full h-2 overflow-hidden mb-4">
+                            <div id="realtimeConfidenceBar" class="progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Top 5 Predictions -->
+                    <div class="card p-5">
+                        <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Top 5 Dự Đoán
+                        </h3>
+                        <div id="realtimeTop5Container" class="space-y-2">
+                            <!-- Dynamic content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder khi chưa có kết quả -->
+                <div id="realtimeEmptyState" class="card p-8 text-center">
+                    <svg class="mx-auto h-16 w-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <h3 class="text-base font-semibold text-gray-700 mb-1">Chưa Có Kết Quả</h3>
+                    <p class="text-gray-500 text-sm">Bắt đầu camera để nhận diện realtime</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-8">
+        <div class="max-w-6xl mx-auto px-4 py-4 text-center">
+            <p class="text-gray-600 text-sm font-medium">Hand Sign Detection API</p>
+            <p class="text-gray-500 text-xs mt-1">Powered by TensorFlow & Flask</p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const fileName = document.getElementById('fileName');
+        const predictBtn = document.getElementById('predictBtn');
+        const btnText = document.getElementById('btnText');
+        const btnLoading = document.getElementById('btnLoading');
+        const resultsColumn = document.getElementById('resultsColumn');
+        const emptyState = document.getElementById('emptyState');
+        const errorSection = document.getElementById('errorSection');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let selectedFile = null;
+
+        // Click to select file
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        // Drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        // Handle file
+        function handleFile(file) {
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp'];
+            if (!validTypes.includes(file.type)) {
+                showError('Định dạng file không hợp lệ. Chỉ chấp nhận: PNG, JPG, JPEG, GIF, BMP');
+                return;
+            }
+
+            // Validate file size (16MB)
+            if (file.size > 16 * 1024 * 1024) {
+                showError('File quá lớn. Kích thước tối đa: 16MB');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                fileName.textContent = file.name;
+                uploadPrompt.classList.add('hidden');
+                imagePreview.classList.remove('hidden');
+                predictBtn.disabled = false;
+                hideError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Predict button
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Show loading
+            btnText.classList.add('hidden');
+            btnLoading.classList.remove('hidden');
+            predictBtn.disabled = true;
+            hideError();
+
+            try {
+                // Create form data
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                // Send request
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayResults(result);
+                } else {
+                    showError(result.error || 'Có lỗi xảy ra khi xử lý ảnh');
+                }
+
+            } catch (error) {
+                showError('Không thể kết nối đến server. Vui lòng thử lại.');
+                console.error('Error:', error);
+            } finally {
+                // Hide loading
+                btnText.classList.remove('hidden');
+                btnLoading.classList.add('hidden');
+                predictBtn.disabled = false;
+            }
+        });
+
+        // Display results
+        function displayResults(result) {
+            // Hide empty state, show results
+            emptyState.classList.add('hidden');
+            resultsColumn.classList.remove('hidden');
+
+            // Main prediction
+            document.getElementById('resultImage').src = result.image_url;
+            document.getElementById('predictedClass').textContent = result.predicted_class;
+
+            const confidencePercent = (result.confidence * 100).toFixed(1);
+            document.getElementById('confidence').textContent = confidencePercent + '%';
+
+            // Animate confidence bar
+            setTimeout(() => {
+                document.getElementById('confidenceBar').style.width = confidencePercent + '%';
+            }, 100);
+
+            // Top 5 predictions
+            const top5Container = document.getElementById('top5Container');
+            top5Container.innerHTML = '';
+
+            result.top5_predictions.forEach((pred, index) => {
+                const percent = (pred.confidence * 100).toFixed(1);
+                const div = document.createElement('div');
+                div.className = 'result-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold text-xs">${index + 1}</span>
+                        <span class="text-xl font-bold text-gray-800">${pred.class}</span>
+                    </div>
+                    <div class="flex-1 mx-4">
+                        <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                    <span class="text-sm font-bold text-gray-700 min-w-[50px] text-right">${percent}%</span>
+                `;
+                top5Container.appendChild(div);
+            });
+
+            // Scroll to results on mobile
+            if (window.innerWidth < 1024) {
+                resultsColumn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // Show error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorSection.classList.remove('hidden');
+            errorSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Hide error
+        function hideError() {
+            errorSection.classList.add('hidden');
+        }
+
+        // ============================================================
+        // REALTIME CAMERA DETECTION - Variables
+        // ============================================================
+        const webcam = document.getElementById('webcam');
+        const videoCanvas = document.getElementById('videoCanvas');
+        const ctx = videoCanvas.getContext('2d');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const cameraStatusText = document.getElementById('cameraStatusText');
+        const realtimeFpsElement = document.getElementById('realtimeFps');
+        const realtimeResultsColumn = document.getElementById('realtimeResultsColumn');
+        const realtimeEmptyState = document.getElementById('realtimeEmptyState');
+
+        let stream = null;
+        let isCameraRunning = false;
+        let predictionInterval = null;
+        let fpsInterval = null;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+
+        // ============================================================
+        // TAB SWITCHING
+        // ============================================================
+        function switchTab(tabName) {
+            // Update tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            const uploadTab = document.getElementById('uploadTab');
+            const cameraTab = document.getElementById('cameraTab');
+
+            if (tabName === 'upload') {
+                uploadTab.classList.add('active');
+                cameraTab.classList.remove('active');
+                // Stop camera if running
+                if (isCameraRunning) {
+                    stopCamera();
+                }
+            } else if (tabName === 'camera') {
+                uploadTab.classList.remove('active');
+                cameraTab.classList.add('active');
+            }
+        }
+
+        // ============================================================
+        // REALTIME CAMERA DETECTION - Functions
+        // ============================================================
+
+        // Start camera
+        startCameraBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+
+                webcam.srcObject = stream;
+                isCameraRunning = true;
+
+                // Update UI
+                startCameraBtn.style.display = 'none';
+                stopCameraBtn.style.display = 'block';
+                cameraStatus.classList.remove('inactive');
+                cameraStatus.classList.add('active');
+                cameraStatusText.textContent = 'Camera đang hoạt động';
+
+                // Show results column
+                realtimeEmptyState.classList.add('hidden');
+                realtimeResultsColumn.classList.remove('hidden');
+
+                // Start drawing video to canvas
+                drawVideoToCanvas();
+
+                // Start prediction loop (every 200ms for better performance)
+                predictionInterval = setInterval(sendFrameForPrediction, 200);
+
+                // Start FPS counter
+                fpsInterval = setInterval(updateFps, 1000);
+
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập camera.');
+            }
+        });
+
+        // Stop camera
+        stopCameraBtn.addEventListener('click', () => {
+            stopCamera();
+        });
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+
+            isCameraRunning = false;
+
+            if (predictionInterval) {
+                clearInterval(predictionInterval);
+                predictionInterval = null;
+            }
+
+            if (fpsInterval) {
+                clearInterval(fpsInterval);
+                fpsInterval = null;
+            }
+
+            // Clear canvas
+            ctx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+
+            // Update UI
+            startCameraBtn.style.display = 'block';
+            stopCameraBtn.style.display = 'none';
+            cameraStatus.classList.remove('active');
+            cameraStatus.classList.add('inactive');
+            cameraStatusText.textContent = 'Camera đang tắt';
+            realtimeFpsElement.textContent = 'FPS: 0';
+
+            // Hide results
+            realtimeResultsColumn.classList.add('hidden');
+            realtimeEmptyState.classList.remove('hidden');
+        }
+
+        // Draw video to canvas
+        function drawVideoToCanvas() {
+            if (!isCameraRunning) return;
+
+            if (webcam.readyState === webcam.HAVE_ENOUGH_DATA) {
+                ctx.drawImage(webcam, 0, 0, videoCanvas.width, videoCanvas.height);
+                frameCount++;
+            }
+
+            requestAnimationFrame(drawVideoToCanvas);
+        }
+
+        // Update FPS
+        function updateFps() {
+            const now = Date.now();
+            const elapsed = (now - lastFpsTime) / 1000;
+            const fps = frameCount / elapsed;
+            realtimeFpsElement.textContent = `FPS: ${fps.toFixed(1)}`;
+            frameCount = 0;
+            lastFpsTime = now;
+        }
+
+        // Send frame for prediction
+        async function sendFrameForPrediction() {
+            if (!isCameraRunning) return;
+
+            try {
+                // Get image data from canvas
+                const imageData = videoCanvas.toDataURL('image/jpeg', 0.8);
+
+                // Send to server
+                const response = await fetch('/api/predict_realtime', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: imageData })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayRealtimeResults(result);
+                }
+            } catch (error) {
+                console.error('Prediction error:', error);
+            }
+        }
+
+        // Display realtime results
+        function displayRealtimeResults(result) {
+            // Update prediction
+            document.getElementById('realtimePredictedClass').textContent = result.predicted_class;
+
+            const confidencePercent = (result.confidence * 100).toFixed(1);
+            document.getElementById('realtimeConfidence').textContent = confidencePercent + '%';
+            document.getElementById('realtimeConfidenceBar').style.width = confidencePercent + '%';
+
+            // Update top 5
+            const top5Container = document.getElementById('realtimeTop5Container');
+            top5Container.innerHTML = '';
+
+            result.top5_predictions.forEach((pred, index) => {
+                const percent = (pred.confidence * 100).toFixed(1);
+                const div = document.createElement('div');
+                div.className = 'result-item flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-700 font-bold text-xs">${index + 1}</span>
+                        <span class="text-xl font-bold text-gray-800">${pred.class}</span>
+                    </div>
+                    <div class="flex-1 mx-4">
+                        <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div class="progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                    <span class="text-sm font-bold text-gray-700 min-w-[50px] text-right">${percent}%</span>
+                `;
+                top5Container.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

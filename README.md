@@ -1,51 +1,51 @@
-# Raspberry Deploy - Nhan Dien Ky Hieu Tay
+# Raspberry Deploy - Nhận Diện Ký Hiệu Tay
 
-## Danh Muc
+## Danh Mục
 
 `Machine Learning` `IoT`
 
-## Gioi Thieu
+## Giới Thiệu
 
-Ung dung web nhan dien ky hieu tay (hand sign detection) chay tren Raspberry Pi 5, su dung TensorFlow va OpenCV voi giao dien Flask.
+Ứng dụng web nhận diện ký hiệu tay (hand sign detection) chạy trên Raspberry Pi 5, sử dụng TensorFlow và OpenCV với giao diện Flask.
 
-## Chuc Nang
+## Chức Năng
 
-- Nhan dien ky hieu tay qua camera
-- Giao dien web Flask
+- Nhận diện ký hiệu tay qua camera
+- Giao diện web Flask
 - Model TensorFlow / TensorFlow Lite
-- Toi uu cho Raspberry Pi 5
-- Script cai dat va chay tu dong
+- Tối ưu cho Raspberry Pi 5
+- Script cài đặt và chạy tự động
 
-## Cong Nghe Su Dung
+## Công Nghệ Sử Dụng
 
 - **AI/ML:** TensorFlow, TensorFlow Lite
 - **Computer Vision:** OpenCV
 - **Web Framework:** Flask
-- **Ngon ngu:** Python
+- **Ngôn ngữ:** Python
 - **Hardware:** Raspberry Pi 5
 
-## Yeu Cau He Thong
+## Yêu Cầu Hệ Thống
 
-- Raspberry Pi 5 (hoac may tinh co camera)
+- Raspberry Pi 5 (hoặc máy tính có camera)
 - Python >= 3.8
 
-## Cai Dat
+## Cài Đặt
 
 ```bash
-# Tren Raspberry Pi
+# Trên Raspberry Pi
 chmod +x install.sh
 ./install.sh
 
-# Hoac thu cong
+# Hoặc thủ công
 pip install -r requirements.txt
 ```
 
-## Chay Ung Dung
+## Chạy Ứng Dụng
 
 ```bash
 chmod +x run.sh
 ./run.sh
 
-# Hoac
+# Hoặc
 python app.py
 ```
